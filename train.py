@@ -112,11 +112,19 @@ def train():
                 text_clip = clipmodel.encode_text(text_pre)
 
             # Forward pass through the MultiModal network
-            pre_rumor = rumor_module(input_ids, all_hidden_states, image, image_clip, text_clip)
+            pre_rumor,label_t,label_u,label_v = rumor_module(input_ids, all_hidden_states, image, image_clip, text_clip)
             loss_rumor = loss_f_rumor(pre_rumor, labels)
 
+            loss_t = loss_f_rumor(label_t, labels)
+            loss_v = loss_f_rumor(label_v, labels)
+            loss_u = loss_f_rumor(label_u, labels)
+            loss_fuzhu = loss_u + loss_t + loss_v
+
+            final_loss = loss_rumor + 0.5 * loss_fuzhu
+
             optim_task.zero_grad()
-            loss_rumor.backward()
+            # loss_rumor.backward()
+            final_loss.backward()
             optim_task.step()
             pre_label_rumor = pre_rumor.argmax(1)
             corrects_pre_rumor += pre_label_rumor.eq(labels.view_as(pre_label_rumor)).sum().item()
@@ -178,7 +186,7 @@ def test(rumor_module, test_loader, BERT, token, clipmodel, epoch):
             text_clip = clipmodel.encode_text(text_pre)
 
             # Forward pass through the MultiModal network
-            pre_rumor = rumor_module(input_ids, all_hidden_states, image, image_clip, text_clip)
+            pre_rumor,label_t,label_u,label_v = rumor_module(input_ids, all_hidden_states, image, image_clip, text_clip)
             loss_rumor = loss_f_rumor(pre_rumor, labels)
 
             pre_label_rumor = pre_rumor.argmax(1)
