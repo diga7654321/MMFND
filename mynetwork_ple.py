@@ -134,6 +134,9 @@ class MultiModal(nn.Module):
             nn.ReLU(),
             nn.Linear(h_dim, 2)
         )
+        self.classifier_T = nn.Linear(64, 2)
+        self.classifier_V = nn.Linear(64, 2)
+        self.classifier_U = nn.Linear(64, 2)
         # self.cross_module = CrossModule
 
     def forward(self, input_ids, all_hidden_states, image_raw, text, image):
@@ -164,6 +167,10 @@ class MultiModal(nn.Module):
         common_feature = torch.cat([txt_common, img_common], 1)
         common_feature = self.mapping_mix(common_feature)
 
+        label_t = self.classifier_T(txt_unique)
+        label_v = self.classifier_V(img_unique)
+        label_u = self.classifier_U(common_feature)
+
         common_feature = common_feature * mweight
         # Combine features
         final_feature = torch.cat([txt_unique.unsqueeze(1), img_unique.unsqueeze(1), common_feature.unsqueeze(1)], 1)
@@ -191,4 +198,4 @@ class MultiModal(nn.Module):
         pre_label = self.classifier_corre(final_feature[:, 0, :] + final_feature[:, 1, :] + final_feature[:, 2, :])
         # pre_label = self.classifier_corre(torch.concat(final_feature[:, 0, :] , final_feature[:, 1, :] , final_feature[:, 2, :]))
 
-        return pre_label
+        return pre_label,label_t,label_u,label_v
